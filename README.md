@@ -1,7 +1,7 @@
 # COM 837 — Assignment 2
 **ML for Wireless Communication** | Hardhik Dhavala (IMT2023579)
 
-Full report: [`report.pdf`](.Assignment_02/Report_A2.pdf) <!-- TODO: update path/filename if different -->
+Full report: [`report.pdf`](Assignment_02/Report_A2.pdf) <!-- TODO: update path/filename if different -->
 
 ## Repository Structure
 
