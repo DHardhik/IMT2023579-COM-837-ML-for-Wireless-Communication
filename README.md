@@ -30,7 +30,7 @@ Assignment_02/
 ```
 <!-- TODO: adjust this tree to match your actual repo structure exactly -->
 
-## Important: fix before submitting
+## Important: fix
 
 - **`Q1/A.py` currently reads from a hardcoded personal Windows path**
   (`C:\Users\Dhava\Desktop\...`). Change this to a relative path
@@ -38,9 +38,7 @@ Assignment_02/
   script runs on any machine, not just the original author's.
 - **A leftover `Q2/B.py` exists in the repo** — this was the original local
   script that failed due to the Windows Application Control / scikit-learn DLL
-  issue, superseded entirely by `Q2_b_and_c.ipynb` run on Kaggle. Either delete
-  it or clearly mark it as superseded so it doesn't look like unexplained,
-  unreferenced code.
+  issue, superseded entirely by `Q2_b_and_c.ipynb` run on Kaggle.
 ## How to Run
 
 ### Question 1
