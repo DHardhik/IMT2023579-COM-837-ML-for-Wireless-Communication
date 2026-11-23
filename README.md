@@ -1,78 +1,47 @@
-# COM 837 — Assignment 2
-**ML for Wireless Communication** | Hardhik Dhavala (IMT2023579)
+# IMT2023579 – COM 837: ML for Wireless Communication
 
-Full report: [`report.pdf`](Assignment_02/Report_A2.pdf) <!-- TODO: update path/filename if different -->
+Coursework for COM 837 (Machine Learning for Wireless Communication), Hardhik Dhavala (IMT2023579), IIIT Bangalore.
 
-## Repository Structure
+| Folder | Topic |
+|---|---|
+| [`Assignment_02/`](Assignment_02) | SVM-based LOS/NLOS identification; K-means clustering for 16-QAM demodulation |
+| [`Assignment_03/`](Assignment_03) | Deep learning-based OFDM channel estimation (ChannelNet: SRCNN + DnCNN) |
 
-```
-Assignment_02/
-├── NLOS_LOS_Classification_main/
-│   ├── .gitattributes
-│   └── Dataset/
-│       ├── generate_dataset.py            # provided (unmodified) dataset generator
-│       └── los_nlos_dataset.csv           # provided (unmodified) dataset
-│
-├── Q1/
-│   ├── A.py                     # Part (a): five-feature extraction (kurtosis, skewness, rising time, RMS delay, K-factor)
-│   ├── B.py                     # Part (b): per-SNR SVM training (6 classifiers)
-│   ├── C.py                     # Part (c): fixed-25dB vs matched-SNR generalization test
-│   └── los_nlos_dataset_with_features.csv # output of A.py, used by B.py / C.py
-│
-├── Q2/
-│   ├── generate_dataset.py      # 16-QAM AWGN dataset generator
-│   ├── A.py                     # Part (a): amplitude (r) and phase (theta) features
-│   ├── Q2_b_and_c.ipynb         # Parts (b) and (c): K-means clustering (run on Kaggle)
-│   ├── qam16_dataset.csv                  # output of generate_dataset.py
-│   └── qam16_dataset_with_features.csv    # output of A.py
-│
-└── README.md
-```
-<!-- TODO: adjust this tree to match your actual repo structure exactly -->
+Each assignment folder has its own README with the full setup and run instructions.
 
-## Important: fix
+---
 
-- **`Q1/A.py` currently reads from a hardcoded personal Windows path**
-  (`C:\Users\Dhava\Desktop\...`). Change this to a relative path
-  (e.g. `../NLOS_LOS_Classification_main/Dataset/los_nlos_dataset.csv`) so the
-  script runs on any machine, not just the original author's.
-- **A leftover `Q2/B.py` exists in the repo** — this was the original local
-  script that failed due to the Windows Application Control / scikit-learn DLL
-  issue, superseded entirely by `Q2_b_and_c.ipynb` run on Kaggle.
-## How to Run
+## Assignment 3 – Deep Learning-Based Channel Estimation (ChannelNet)
 
-### Question 1
-```bash
-cd Q1
-python A.py   # generates los_nlos_dataset_with_features.csv
-python B.py   # trains 6 SVMs per SNR, saves accuracy plot
-python C.py   # generalization experiment, saves comparison plot
-```
+This assignment reproduces *Soltani et al., "Deep Learning-Based Channel Estimation", IEEE Commun. Lett., 2019*.
+The 72 × 14 OFDM time-frequency channel is treated as an image. The pilot estimate goes through an
+**SRCNN** (super-resolution) stage and then a **DnCNN** (denoising) stage, both trained in two stages.
+The results are compared with **LS + 2-D interpolation** and with **ideal / estimated MMSE** on the **VehA** and **SUI5** channels.
 
-### Question 2
-```bash
-cd Q2
-python generate_dataset.py   # generates qam16_dataset.csv
-python A.py                  # generates qam16_dataset_with_features.csv
-```
-Parts (b) and (c) are in `Q2_b_and_c.ipynb`. This notebook was run on
-**Kaggle** (not locally) due to a Windows Application Control policy blocking
-a compiled scikit-learn extension (`_hierarchical_fast.pyd`) needed to import
-`KMeans` on the local machine. To reproduce:
-1. Upload `qam16_dataset_with_features.csv` as a Kaggle dataset input
-2. Update the `pd.read_csv(...)` path in the notebook's first cell to match
-3. Run all cells
+**Pipeline**
+1. **Channels (MATLAB):** `matlab/gen_channels.m` uses the Vienna 5G Link-Level Simulator's `FastFading` class.
+   It generates 40,000 VehA and 40,000 SUI5 channels (2.1 GHz, 50 km/h; SUI5 as a custom delay profile).
+2. **Baselines:** `run_conventional.py` computes LS + interpolation and ideal / estimated MMSE.
+3. **Training:** `train.py` trains SRCNN, then DnCNN on the frozen SRCNN.
+   Networks are trained at 12 dB and 22 dB, plus for 24/36/48/72 pilots (20 checkpoints in total).
+4. **Testing:** `test.py` evaluates from the saved checkpoints and produces the MSE vs SNR and MSE vs pilots plots and tables.
 
-## Dependencies
-```
-numpy
-pandas
-scikit-learn
-matplotlib
-```
+All settings are in `src/config.py`. The full pipeline ran on Kaggle (2× T4) in about 3 hours.
 
-## Reference
-C. Huang, A. F. Molisch, R. He, R. Wang, P. Tang, B. Ai, and Z. Zhong,
-"Machine Learning-Enabled LOS/NLOS Identification for MIMO Systems in Dynamic
-Environments," *IEEE Transactions on Wireless Communications*, vol. 19, no. 6,
-pp. 3643–3657, Jun. 2020. doi: 10.1109/TWC.2020.2967726.
+**Key results (test MSE, 48 pilots)**
+
+| | VehA @ 30 dB | SUI5 @ 25 dB |
+|---|---|---|
+| LS + interpolation | 2.3e-3 | 1.3e-1 |
+| Estimated MMSE | 1.9e-3 | 1.3e-1 |
+| **ChannelNet (22 dB network)** | **5.8e-4** | **1.7e-3** |
+| Ideal MMSE (bound) | 2.4e-4 | 4.3e-4 |
+
+- **VehA:** ChannelNet matches practical MMSE at low SNR and beats it at high SNR.
+- **SUI5:** ChannelNet removes the ~0.13 interpolation error floor of LS and estimated MMSE, giving about 75× lower MSE at 25 dB.
+- **Limitation:** each network only generalises near its training SNR. For example, the 22 dB network is worse than LS at 0 dB.
+  The report discusses remedies: multi-SNR training, noise-conditioned networks, and SNR-switched model banks.
+
+**Contents:** source code, `README.md` (exact steps), `checkpoints/`, `results/` (all plots + tables),
+`report/` (6-page technical report, PDF + LaTeX), and the executed Kaggle notebook.
+The `.mat` channel files (~290 MB each) are not included; `gen_channels.m` regenerates them exactly from fixed seeds.
